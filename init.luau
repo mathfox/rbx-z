@@ -1,0 +1,765 @@
+--!native
+-- This flag ensures we get the same code optimizations in studio as in the live servers.
+-- This also includes inlining the function calls.
+--!optimize 2
+
+local z = {}
+
+function z.type(typeName)
+	return function(value)
+		local valueType = type(value)
+		if valueType == typeName then
+			return true
+		else
+			return false, `{typeName} expected, got {valueType}`
+		end
+	end
+end
+
+function z.typeof(typeName)
+	return function(value)
+		local valueType = typeof(value)
+		if valueType == typeName then
+			return true
+		else
+			return false, `{typeName} expected, got {valueType}`
+		end
+	end
+end
+
+function z.any(value)
+	if value ~= nil then
+		return true
+	else
+		return false, "any expected, got nil"
+	end
+end
+
+-- Luau primitives
+
+z.boolean = z.type("boolean")
+z.buffer = z.type("buffer")
+z.thread = z.type("thread")
+z.callback = z.type("function")
+z["function"] = z.callback
+z.none = z.type("nil")
+z["nil"] = z.none
+z.string = z.type("string")
+z.table = z.type("table")
+z.userdata = z.type("userdata")
+z.vector = z.type("vector")
+
+-- ensures value is a number and non-NaN
+function z.number(value)
+	local valueType = type(value)
+	if valueType == "number" then
+		if value == value then
+			return true
+		else
+			return false, "unexpected NaN value"
+		end
+	else
+		return false, `number expected, got {valueType}`
+	end
+end
+
+-- ensures value is NaN
+function z.nan(value)
+	local valueType = type(value)
+	if valueType == "number" then
+		if value ~= value then
+			return true
+		else
+			return false, "unexpected non-NaN value"
+		end
+	else
+		return false, `number expected, got {valueType}`
+	end
+end
+
+-- Roblox types
+
+z.Axes = z.typeof("Axes")
+z.BrickColor = z.typeof("BrickColor")
+z.CatalogSearchParams = z.typeof("CatalogSearchParams")
+z.CFrame = z.typeof("CFrame")
+z.Color3 = z.typeof("Color3")
+z.ColorSequence = z.typeof("ColorSequence")
+z.ColorSequenceKeypoint = z.typeof("ColorSequenceKeypoint")
+z.DateTime = z.typeof("DateTime")
+z.DockWidgetPluginGuiInfo = z.typeof("DockWidgetPluginGuiInfo")
+z.Enum = z.typeof("Enum")
+z.EnumItem = z.typeof("EnumItem")
+z.Enums = z.typeof("Enums")
+z.Faces = z.typeof("Faces")
+z.FloatCurveKey = z.typeof("FloatCurveKey")
+z.Font = z.typeof("Font")
+z.Instance = z.typeof("Instance")
+z.NumberRange = z.typeof("NumberRange")
+z.NumberSequence = z.typeof("NumberSequence")
+z.NumberSequenceKeypoint = z.typeof("NumberSequenceKeypoint")
+z.OverlapParams = z.typeof("OverlapParams")
+z.PathWaypoint = z.typeof("PathWaypoint")
+z.PhysicalProperties = z.typeof("PhysicalProperties")
+z.Random = z.typeof("Random")
+z.Ray = z.typeof("Ray")
+z.RaycastParams = z.typeof("RaycastParams")
+z.RaycastResult = z.typeof("RaycastResult")
+z.RBXScriptConnection = z.typeof("RBXScriptConnection")
+z.RBXScriptSignal = z.typeof("RBXScriptSignal")
+z.Rect = z.typeof("Rect")
+z.Region3 = z.typeof("Region3")
+z.Region3int16 = z.typeof("Region3int16")
+z.TweenInfo = z.typeof("TweenInfo")
+z.UDim = z.typeof("UDim")
+z.UDim2 = z.typeof("UDim2")
+z.Vector2 = z.typeof("Vector2")
+z.Vector2int16 = z.typeof("Vector2int16")
+z.Vector3 = z.typeof("Vector3")
+z.Vector3int16 = z.typeof("Vector3int16")
+
+-- ensures value is any of the given literal value
+function z.literal(...)
+	local size = select("#", ...)
+
+	if size == 1 then
+		local literal = ...
+
+		return function(value)
+			if value ~= literal then
+				return false, `expected {literal}, got {value}`
+			end
+
+			return true
+		end
+	else
+		local literals = {}
+
+		for i = 1, size do
+			literals[i] = z.literal(select(i, ...))
+		end
+
+		return z.union(unpack(literals, 1, size))
+	end
+end
+
+-- Returns a z.union of each key in the table as a z.literal
+function z.keyOf(keyTable)
+	local keys = {}
+	local length = 0
+	for key in keyTable do
+		length += 1
+		keys[length] = key
+	end
+
+	return z.literal(unpack(keys, 1, length))
+end
+
+-- Returns a z.union of each value in the table as a z.literal
+function z.valueOf(valueTable)
+	local values = {}
+	local length = 0
+	for _, value in valueTable do
+		length += 1
+		values[length] = value
+	end
+
+	return z.literal(unpack(values, 1, length))
+end
+
+-- ensures value is an integer
+function z.integer(value)
+	local success, errMsg = z.number(value)
+	if not success then
+		return false, errMsg
+	end
+
+	if value % 1 == 0 then
+		return true
+	else
+		return false, `integer expected, got {value}`
+	end
+end
+
+-- ensure value is a number and not equals to +inf and -inf
+function z.numberFinite(value)
+	local success, errMsg = z.number(value)
+	if not success then
+		return false, errMsg
+	end
+
+	if value ~= math.huge and value ~= -math.huge then
+		return true
+	else
+		return false, `integer expected, got {value}`
+	end
+end
+
+-- ensures value is a number where value > min
+function z.numberGt(min)
+	return function(value)
+		local success, errMsg = z.number(value)
+		if not success then
+			return false, errMsg
+		end
+
+		if min < value then
+			return true
+		else
+			return false, `number > {min} expected, got {value}`
+		end
+	end
+end
+
+-- ensures value is a number where value < max
+function z.numberLt(max)
+	return function(value)
+		local success, errMsg = z.number(value)
+		if not success then
+			return false, errMsg
+		end
+
+		if value < max then
+			return true
+		else
+			return false, `number < {max} expected, got {value}`
+		end
+	end
+end
+
+-- ensures value is a number where value >= min
+function z.numberGte(min)
+	return function(value)
+		local success, errMsg = z.number(value)
+		if not success then
+			return false, errMsg
+		end
+
+		if value >= min then
+			return true
+		else
+			return false, `number >= {min} expected, got {value}`
+		end
+	end
+end
+
+-- ensures value is a number where value <= max
+function z.numberLte(max)
+	return function(value)
+		local success, errMsg = z.number(value)
+		if not success then
+			return false, errMsg
+		end
+
+		if value <= max then
+			return true
+		else
+			return false, `number <= {max} expected, got {value}`
+		end
+	end
+end
+
+-- ensures value is a number where value > 0
+z.numberPositive = z.numberGt(0)
+
+-- ensures value is a number where value < 0
+z.numberNegative = z.numberLt(0)
+
+-- ensures value is a number where min <= value <= max
+function z.numberConstrained(min, max)
+	-- TODO: probably omit these
+	assert(z.number(min))
+	assert(z.number(max))
+
+	local minCheck = z.numberGte(min)
+	local maxCheck = z.numberLte(max)
+
+	return function(value)
+		local minSuccess, minErrMsg = minCheck(value)
+		if not minSuccess then
+			return false, minErrMsg
+		end
+
+		local maxSuccess, maxErrMsg = maxCheck(value)
+		if not maxSuccess then
+			return false, maxErrMsg
+		end
+
+		return true
+	end
+end
+
+-- ensures value is a number where min < value < max
+function z.numberConstrainedExclusive(min, max)
+	assert(z.number(min))
+	assert(z.number(max))
+
+	local minCheck = z.numberGt(min)
+	local maxCheck = z.numberLt(max)
+
+	return function(value)
+		local minSuccess, minErrMsg = minCheck(value)
+		if not minSuccess then
+			return false, minErrMsg
+		end
+
+		local maxSuccess, maxErrMsg = maxCheck(value)
+		if not maxSuccess then
+			return false, maxErrMsg
+		end
+
+		return true
+	end
+end
+
+-- ensures value matches string pattern
+function z.match(pattern)
+	assert(z.string(pattern))
+
+	return function(value)
+		local stringSuccess, stringErrMsg = z.string(value)
+		if not stringSuccess then
+			return false, stringErrMsg
+		end
+
+		if string.match(value, pattern) == nil then
+			return false, string.format("%q failed to match pattern %q", value, pattern)
+		end
+
+		return true
+	end
+end
+
+-- ensures value is either nil or passes check
+function z.optional(check)
+	assert(z.callback(check))
+
+	return function(value)
+		if value == nil then
+			return true
+		end
+
+		local success, errMsg = check(value)
+		if success then
+			return true
+		else
+			return false, `(optional) {errMsg}`
+		end
+	end
+end
+
+-- Matches given tuple against tuple type definition.
+function z.tuple(...)
+	local checks = { ... }
+
+	return function(...)
+		for checkIndex, check in checks do
+			local success, errMsg = check(select(checkIndex, ...))
+			if success == false then
+				return false, `Bad tuple index #{checkIndex}:\n\t{errMsg}`
+			end
+		end
+
+		return true
+	end
+end
+
+-- Matches given tuple against tuple type definition.
+function z.strictTuple(...)
+	local checksLength, checks = select("#", ...), { ... }
+
+	return function(...)
+		local length = select("#", ...)
+		if length ~= checksLength then
+			return false, `Invalid tuple length, expected {checksLength}, got {length}`
+		end
+
+		for checkIndex = 1, checksLength do
+			local success, errMsg = checks[checkIndex](select(checkIndex, ...))
+			if success == false then
+				return false, `Bad tuple index #{checkIndex}:\n\t{errMsg}`
+			end
+		end
+
+		return true
+	end
+end
+
+-- ensures all keys in given table pass check
+function z.keys(check)
+	assert(z.callback(check))
+
+	return function(value)
+		local tableSuccess, tableErrMsg = z.table(value)
+		if tableSuccess == false then
+			return false, tableErrMsg
+		end
+
+		for key in value do
+			local success, errMsg = check(key)
+			if success == false then
+				return false, `Bad key {key}:\n\t{errMsg}`
+			end
+		end
+
+		return true
+	end
+end
+
+-- ensures all values in given table pass check
+function z.values(check)
+	assert(z.callback(check))
+
+	return function(value)
+		local tableSuccess, tableErrMsg = z.table(value)
+		if tableSuccess == false then
+			return false, tableErrMsg
+		end
+
+		for key, val in value do
+			local success, errMsg = check(val)
+			if success == false then
+				return false, `bad value for key {key}:\n\t{errMsg}`
+			end
+		end
+
+		return true
+	end
+end
+
+-- ensures value is a table and all keys pass keyCheck and all values pass valueCheck
+function z.map(keyCheck, valueCheck)
+	assert(z.callback(keyCheck))
+	assert(z.callback(valueCheck))
+
+	local keyChecker = z.keys(keyCheck)
+	local valueChecker = z.values(valueCheck)
+
+	return function(value)
+		local keySuccess, keyErr = keyChecker(value)
+		if not keySuccess then
+			return false, keyErr
+		end
+
+		local valueSuccess, valueErr = valueChecker(value)
+		if not valueSuccess then
+			return false, valueErr
+		end
+
+		return true
+	end
+end
+
+-- ensures value is a table and all keys pass valueCheck and all values are true
+function z.set(valueCheck)
+	return z.map(valueCheck, z.literal(true))
+end
+
+-- ensures value is an array and all values of the array match check
+function z.array(check)
+	assert(z.callback(check))
+
+	local valuesCheck = z.values(check)
+
+	return function(value)
+		local valueType = type(value)
+		if valueType ~= "table" then
+			return false, `array expected, got {valueType}`
+		end
+
+		if next(value) == nil then
+			-- an empty table is an empty array
+			return true
+		end
+
+		local length = #value
+		if length == 0 then
+			return false, `array expected, got a map-like object`
+		end
+
+		local count = 0
+		local sum = 0
+
+		for key in value do
+			local keyType = type(key)
+			if keyType ~= "number" then
+				return false, `array expected, got a map-like object with key of type - {keyType}`
+			end
+
+			if key % 1 ~= 0 or key < 1 then
+				return false, `array expected, got a map-like object with key - {key}`
+			end
+
+			count += 1
+			sum += key
+		end
+
+		local isArray = sum == (count * (count + 1) / 2)
+		if not isArray then
+			return `array expected, got mixed array`
+		end
+
+		-- TODO: inline instead of nested callstack
+		local valueSuccess, valueErrMsg = valuesCheck(value)
+		if not valueSuccess then
+			return false, `[array] {valueErrMsg}`
+		end
+
+		return true
+	end
+end
+
+-- ensures value is an array of a strict makeup and size.
+function z.strictArray(...)
+	local valueTypes = { ... }
+	assert(z.array(z.callback)(valueTypes))
+
+	return function(value)
+		local keySuccess, keyErrMsg = arrayKeysCheck(value)
+		if keySuccess == false then
+			return false, string.format("[strictArray] %s", keyErrMsg or "")
+		end
+
+		-- If there's more than the set array size, disallow
+		if #valueTypes < #value then
+			return false, string.format("[strictArray] Array size exceeds limit of %d", #valueTypes)
+		end
+
+		for idx, typeFn in pairs(valueTypes) do
+			local typeSuccess, typeErrMsg = typeFn(value[idx])
+			if not typeSuccess then
+				return false, string.format("[strictArray] Array index #%d - %s", idx, typeErrMsg)
+			end
+		end
+
+		return true
+	end
+end
+
+-- creates a union type
+function z.union(...)
+	local checks = { ... }
+	assert(z.array(z.callback)(checks))
+
+	return function(value)
+		for _, check in checks do
+			if check(value) then
+				return true
+			end
+		end
+
+		return false, "bad type for union"
+	end
+end
+
+-- creates an intersection type
+function z.intersection(...)
+	local checks = { ... }
+	assert(z.array(z.callback)(checks))
+
+	return function(value)
+		for _, check in checks do
+			local success, errMsg = check(value)
+			if not success then
+				return false, errMsg
+			end
+		end
+
+		return true
+	end
+end
+
+do
+	local checkInterface = z.map(z.any, z.callback)
+
+	-- ensures value matches given interface definition
+	function z.interface(checkTable)
+		assert(checkInterface(checkTable))
+
+		return function(value)
+			local valueType = type(value)
+			if valueType ~= "table" then
+				return false, `interface expected, got {valueType}`
+			end
+
+			for key, check in checkTable do
+				local success, errMsg = check(value[key])
+				if success == false then
+					return false, `[interface] bad value for {key}:\n\t{errMsg}`
+				end
+			end
+
+			return true
+		end
+	end
+
+	-- ensures value matches given interface definition strictly
+	function z.strictInterface(checkTable)
+		assert(checkInterface(checkTable))
+
+		return function(value)
+			local tableSuccess, tableErrMsg = z.table(value)
+			if tableSuccess == false then
+				return false, tableErrMsg
+			end
+
+			for key, check in pairs(checkTable) do
+				local success, errMsg = check(value[key])
+				if success == false then
+					return false, `[strictInterface] bad value for {key}:\n\t{errMsg}`
+				end
+			end
+
+			for key in value do
+				if not checkTable[key] then
+					return false, `[strictInterface] unexpected field {key}`
+				end
+			end
+
+			return true
+		end
+	end
+end
+
+-- ensure value is an Instance and it's ClassName matches the given ClassName
+function z.instanceOf(className, childTable)
+	assert(z.string(className))
+
+	local childrenCheck
+	if childTable ~= nil then
+		childrenCheck = z.children(childTable)
+	end
+
+	return function(value)
+		local instanceSuccess, instanceErrMsg = z.Instance(value)
+		if not instanceSuccess then
+			return false, instanceErrMsg
+		end
+
+		if value.ClassName ~= className then
+			return false, string.format("%s expected, got %s", className, value.ClassName)
+		end
+
+		if childrenCheck then
+			local childrenSuccess, childrenErrMsg = childrenCheck(value)
+			if not childrenSuccess then
+				return false, childrenErrMsg
+			end
+		end
+
+		return true
+	end
+end
+
+-- ensure value is an Instance and it's ClassName matches the given ClassName by an IsA comparison
+function z.instanceIsA(className, childTable)
+	assert(z.string(className))
+
+	local childrenCheck
+	if childTable ~= nil then
+		childrenCheck = z.children(childTable)
+	end
+
+	return function(value)
+		local instanceSuccess, instanceErrMsg = z.Instance(value)
+		if not instanceSuccess then
+			return false, instanceErrMsg
+		end
+
+		if not value:IsA(className) then
+			return false, string.format("%s expected, got %s", className, value.ClassName)
+		end
+
+		if childrenCheck then
+			local childrenSuccess, childrenErrMsg = childrenCheck(value)
+			if not childrenSuccess then
+				return false, childrenErrMsg
+			end
+		end
+
+		return true
+	end
+end
+
+-- ensures value is an enum of the correct type
+function z.enum(enum)
+	assert(z.Enum(enum))
+
+	return function(value)
+		local enumItemSuccess, enumItemErrMsg = z.EnumItem(value)
+		if not enumItemSuccess then
+			return false, enumItemErrMsg
+		end
+
+		if value.EnumType == enum then
+			return true
+		else
+			return false, string.format("enum of %s expected, got enum of %s", tostring(enum), tostring(value.EnumType))
+		end
+	end
+end
+
+do
+	local checkWrap = z.tuple(z.callback, z.callback)
+
+	-- wraps a callback in an assert with checkArgs
+	function z.wrap(callback, checkArgs)
+		assert(checkWrap(callback, checkArgs))
+		return function(...)
+			assert(checkArgs(...))
+			return callback(...)
+		end
+	end
+end
+
+-- asserts a given check
+function z.strict(check)
+	return function(...)
+		assert(check(...))
+	end
+end
+
+do
+	local checkChildren = z.map(z.string, z.callback)
+
+	--[[
+		Takes a table where keys are child names and values are functions to check the children againsz.
+		Pass an instance tree into the function.
+		If at least one child passes each check, the overall check passes.
+
+		Warning! If you pass in a tree with more than one child of the same name, this function will always return false
+	]]
+	function z.children(checkTable)
+		assert(checkChildren(checkTable))
+
+		return function(value)
+			local instanceSuccess, instanceErrMsg = z.Instance(value)
+			if not instanceSuccess then
+				return false, instanceErrMsg
+			end
+
+			local childrenByName = {}
+			for _, child in value:GetChildren() do
+				local name = child.Name
+				if checkTable[name] then
+					if childrenByName[name] then
+						return false, string.format("Cannot process multiple children with the same name %q", name)
+					end
+
+					childrenByName[name] = child
+				end
+			end
+
+			for name, check in checkTable do
+				local success, errMsg = check(childrenByName[name])
+				if not success then
+					return false, string.format("[%s.%s] %s", value:GetFullName(), name, errMsg or "")
+				end
+			end
+
+			return true
+		end
+	end
+end
+
+return z
