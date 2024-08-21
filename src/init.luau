@@ -3,9 +3,65 @@
 -- This also includes inlining the function calls.
 --!optimize 2
 
+-- TODO: add (value is T) generics similar to TypeScript, which prolly will never happen
+export type check = (value: unknown) -> boolean
+
+export type CheckablePrimitives =
+	"nil"
+	| "boolean"
+	| "string"
+	| "number"
+	| "table"
+	| "userdata"
+	| "function"
+	| "thread"
+	| "vector"
+	| "buffer"
+
+export type CheckableTypes =
+	CheckablePrimitives
+	| "Axes"
+	| "BrickColor"
+	| "CatalogSearchParams"
+	| "CFrame"
+	| "Color3"
+	| "ColorSequence"
+	| "ColorSequenceKeypoint"
+	| "DateTime"
+	| "DockWidgetPluginGuiInfo"
+	| "Enum"
+	| "EnumItem"
+	| "Enums"
+	| "Faces"
+	| "FloatCurveKey"
+	| "Font"
+	| "Instance"
+	| "NumberRange"
+	| "NumberSequence"
+	| "NumberSequenceKeypoint"
+	| "OverlapParams"
+	| "PathWaypoint"
+	| "PhysicalProperties"
+	| "Random"
+	| "Ray"
+	| "RaycastParams"
+	| "RaycastResult"
+	| "RBXScriptConnection"
+	| "RBXScriptSignal"
+	| "Rect"
+	| "Region3"
+	| "Region3int16"
+	| "TweenInfo"
+	| "UDim"
+	| "UDim2"
+	| "Vector2"
+	| "Vector2int16"
+	| "Vector3"
+	| "Vector3int16"
+
 local z = {}
 
-function z.type(typeName)
+function z.type(typeName: CheckablePrimitives)
 	return function(value)
 		local valueType = type(value)
 		if valueType == typeName then
@@ -16,7 +72,7 @@ function z.type(typeName)
 	end
 end
 
-function z.typeof(typeName)
+function z.typeof(typeName: CheckableTypes)
 	return function(value)
 		local valueType = typeof(value)
 		if valueType == typeName then
@@ -47,34 +103,31 @@ z["nil"] = z.none
 z.string = z.type("string")
 z.table = z.type("table")
 z.userdata = z.type("userdata")
+-- Checks for Vector3
 z.vector = z.type("vector")
 
 -- ensures value is a number and non-NaN
 function z.number(value)
 	local valueType = type(value)
-	if valueType == "number" then
-		if value == value then
-			return true
-		else
-			return false, "unexpected NaN value"
-		end
-	else
+	if valueType ~= "number" then
 		return false, `number expected, got {valueType}`
+	elseif value ~= value then
+		return false, "unexpected NaN value"
 	end
+
+	return true
 end
 
 -- ensures value is NaN
 function z.nan(value)
 	local valueType = type(value)
-	if valueType == "number" then
-		if value ~= value then
-			return true
-		else
-			return false, "unexpected non-NaN value"
-		end
-	else
+	if valueType ~= "number" then
 		return false, `number expected, got {valueType}`
+	elseif value == value then
+		return false, "unexpected non-NaN value"
 	end
+
+	return true
 end
 
 -- Roblox types
@@ -132,15 +185,15 @@ function z.literal(...)
 
 			return true
 		end
-	else
-		local literals = {}
-
-		for i = 1, size do
-			literals[i] = z.literal(select(i, ...))
-		end
-
-		return z.union(unpack(literals, 1, size))
 	end
+
+	local literals = {}
+
+	for i = 1, size do
+		literals[i] = z.literal(select(i, ...))
+	end
+
+	return z.union(unpack(literals, 1, size))
 end
 
 -- Returns a z.union of each key in the table as a z.literal
@@ -172,13 +225,11 @@ function z.integer(value)
 	local success, errMsg = z.number(value)
 	if not success then
 		return false, errMsg
-	end
-
-	if value % 1 == 0 then
-		return true
-	else
+	elseif value % 1 ~= 0 then
 		return false, `integer expected, got {value}`
 	end
+
+	return true
 end
 
 -- ensure value is a number and not equals to +inf and -inf
@@ -186,76 +237,74 @@ function z.numberFinite(value)
 	local success, errMsg = z.number(value)
 	if not success then
 		return false, errMsg
+	elseif value ~= math.huge and value ~= -math.huge then
+		return true
 	end
 
-	if value ~= math.huge and value ~= -math.huge then
-		return true
-	else
-		return false, `integer expected, got {value}`
-	end
+	return false, `integer expected, got {value}`
 end
 
 -- ensures value is a number where value > min
 function z.numberGt(min)
+	assert(z.number(min))
+
 	return function(value)
 		local success, errMsg = z.number(value)
 		if not success then
 			return false, errMsg
+		elseif value > min then
+			return true
 		end
 
-		if min < value then
-			return true
-		else
-			return false, `number > {min} expected, got {value}`
-		end
+		return false, `number > {min} expected, got {value}`
 	end
 end
 
 -- ensures value is a number where value < max
 function z.numberLt(max)
+	assert(z.number(max))
+
 	return function(value)
 		local success, errMsg = z.number(value)
 		if not success then
 			return false, errMsg
+		elseif value < max then
+			return true
 		end
 
-		if value < max then
-			return true
-		else
-			return false, `number < {max} expected, got {value}`
-		end
+		return false, `number < {max} expected, got {value}`
 	end
 end
 
 -- ensures value is a number where value >= min
 function z.numberGte(min)
+	assert(z.number(min))
+
 	return function(value)
 		local success, errMsg = z.number(value)
 		if not success then
 			return false, errMsg
+		elseif value >= min then
+			return true
 		end
 
-		if value >= min then
-			return true
-		else
-			return false, `number >= {min} expected, got {value}`
-		end
+		return false, `number >= {min} expected, got {value}`
 	end
 end
 
 -- ensures value is a number where value <= max
 function z.numberLte(max)
+	assert(z.number(max))
+
 	return function(value)
 		local success, errMsg = z.number(value)
 		if not success then
 			return false, errMsg
+		elseif value <= max then
+			return true
 		end
 
-		if value <= max then
-			return true
-		else
-			return false, `number <= {max} expected, got {value}`
-		end
+		return false, `number <= {max} expected, got {value}`
 	end
 end
 
@@ -267,10 +316,6 @@ z.numberNegative = z.numberLt(0)
 
 -- ensures value is a number where min <= value <= max
 function z.numberConstrained(min, max)
-	-- TODO: probably omit these
-	assert(z.number(min))
-	assert(z.number(max))
-
 	local minCheck = z.numberGte(min)
 	local maxCheck = z.numberLte(max)
 
@@ -291,9 +336,6 @@ end
 
 -- ensures value is a number where min < value < max
 function z.numberConstrainedExclusive(min, max)
-	assert(z.number(min))
-	assert(z.number(max))
-
 	local minCheck = z.numberGt(min)
 	local maxCheck = z.numberLt(max)
 
@@ -340,23 +382,25 @@ function z.optional(check)
 		end
 
 		local success, errMsg = check(value)
-		if success then
-			return true
-		else
+		if not success then
 			return false, `(optional) {errMsg}`
 		end
+
+		return true
 	end
 end
 
--- Matches given tuple against tuple type definition.
+--[[
+    Ensures that each tuple element passes all of the checks provided.
+]]
 function z.tuple(...)
-	local checks = { ... }
+	local check = z.intersection(...)
 
 	return function(...)
-		for checkIndex, check in checks do
-			local success, errMsg = check(select(checkIndex, ...))
-			if success == false then
-				return false, `Bad tuple index #{checkIndex}:\n\t{errMsg}`
+		for index = 1, select("#", ...) do
+			local success, errMsg = check(select(index, ...))
+			if not success then
+				return false, `Bad tuple index #{index}:\n\t{errMsg}`
 			end
 		end
 
@@ -364,7 +408,10 @@ function z.tuple(...)
 	end
 end
 
--- Matches given tuple against tuple type definition.
+--[[
+    Ensures that each tuple element passes the corresponding check provided.
+    If elements count does not match, it will also fail.
+]]
 function z.strictTuple(...)
 	local checksLength, checks = select("#", ...), { ... }
 
@@ -376,7 +423,7 @@ function z.strictTuple(...)
 
 		for checkIndex = 1, checksLength do
 			local success, errMsg = checks[checkIndex](select(checkIndex, ...))
-			if success == false then
+			if not success then
 				return false, `Bad tuple index #{checkIndex}:\n\t{errMsg}`
 			end
 		end
@@ -397,7 +444,7 @@ function z.keys(check)
 
 		for key in value do
 			local success, errMsg = check(key)
-			if success == false then
+			if not success then
 				return false, `Bad key {key}:\n\t{errMsg}`
 			end
 		end
@@ -418,7 +465,7 @@ function z.values(check)
 
 		for key, val in value do
 			local success, errMsg = check(val)
-			if success == false then
+			if not success then
 				return false, `bad value for key {key}:\n\t{errMsg}`
 			end
 		end
@@ -449,6 +496,9 @@ function z.map(keyCheck, valueCheck)
 		return true
 	end
 end
+
+-- Intenteed for TypeScript usage.
+z.record = z.map
 
 -- ensures value is a table and all keys pass valueCheck and all values are true
 function z.set(valueCheck)
@@ -496,10 +546,9 @@ function z.array(check)
 
 		local isArray = sum == (count * (count + 1) / 2)
 		if not isArray then
-			return `array expected, got mixed array`
+			return false, `array expected, got mixed array`
 		end
 
-		-- TODO: inline instead of nested callstack
 		local valueSuccess, valueErrMsg = valuesCheck(value)
 		if not valueSuccess then
 			return false, `[array] {valueErrMsg}`
@@ -762,4 +811,6 @@ do
 	end
 end
 
-return z
+return {
+	z = z,
+}

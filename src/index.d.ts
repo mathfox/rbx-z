@@ -1,196 +1,259 @@
 // utility types
-type Literal = string | number | boolean | undefined | null | void | {};
-type ArrayType<T> = T extends Array<infer U> ? U : never;
+type ArrayType<T> = T extends ReadonlyArray<infer U> ? U : never;
 
-interface t {
-	// lua types
+interface z {
+	// Luau types
+
 	/** checks to see if `type(value) == typeName` */
-	type: <T extends keyof CheckablePrimitives>(typeName: T) => t.check<CheckablePrimitives[T]>;
+	type: <T extends keyof CheckablePrimitives>(
+		typeName: T,
+	) => z.check<CheckablePrimitives[T]>;
+
 	/** checks to see if `typeof(value) == typeName` */
-	typeof: <T extends keyof CheckableTypes>(typeName: T) => t.check<CheckableTypes[T]>;
+	typeof: <T extends keyof CheckableTypes>(
+		typeName: T,
+	) => z.check<CheckableTypes[T]>;
+
 	/** checks to see if `value` is not undefined */
-	any: t.check<defined>;
+	any: z.check<defined>;
+
 	/** checks to see if `value` is a boolean */
-	boolean: t.check<boolean>;
+	boolean: z.check<boolean>;
 	/** checks to see if `value` is a buffer */
-	buffer: t.check<buffer>;
+	buffer: z.check<buffer>;
 	/** checks to see if `value` is a thread */
-	thread: t.check<thread>;
+	thread: z.check<thread>;
 	/** checks to see if `value` is a function */
-	callback: t.check<(...args: Array<unknown>) => unknown>;
+	callback: z.check<Callback>;
 	/** alias of t.callback */
-	function: t.check<undefined>;
+	function: z.check<Callback>;
 	/** checks to see if `value` is undefined */
-	none: t.check<undefined>;
+	none: z.check<undefined>;
 	/** alias of t.none */
-	nil: t.check<undefined>;
-	/** checks to see if `value` is a number, will _not_ match NaN */
-	number: t.check<number>;
-	/** checks to see if `value` is NaN */
-	nan: t.check<number>;
+	nil: z.check<undefined>;
 	/** checks to see if `value` is a string */
-	string: t.check<string>;
+	string: z.check<string>;
 	/** checks to see if `value` is an object */
-	table: t.check<object>;
+	table: z.check<object>;
 	/** checks to see if `value` is a userdata */
-	userdata: t.check<object>;
+	userdata: z.check<object>;
 	/** checks to see if `value` is a vector (Vector3 in Roblox) */
-	vector: t.check<Vector3>;
+	vector: z.check<Vector3>;
 
-	// roblox types
+	/** checks to see if `value` is a number, will _not_ match NaN */
+	number: z.check<number>;
+	/** checks to see if `value` is NaN */
+	nan: z.check<number>;
+
+	// Roblox types
+
 	/** checks to see if `value` is an Axes */
-	Axes: t.check<Axes>;
+	Axes: z.check<Axes>;
 	/** checks to see if `value` is a BrickColor */
-	BrickColor: t.check<BrickColor>;
+	BrickColor: z.check<BrickColor>;
 	/** checks to see if `value` is a CatalogSearchParams */
-	CatalogSearchParams: t.check<CatalogSearchParams>;
+	CatalogSearchParams: z.check<CatalogSearchParams>;
 	/** checks to see if `value` is a CFrame */
-	CFrame: t.check<CFrame>;
+	CFrame: z.check<CFrame>;
 	/** checks to see if `value` is a Color3 */
-	Color3: t.check<Color3>;
+	Color3: z.check<Color3>;
 	/** checks to see if `value` is a ColorSequence */
-	ColorSequence: t.check<ColorSequence>;
+	ColorSequence: z.check<ColorSequence>;
 	/** checks to see if `value` is a ColorSequenceKeypoint */
-	ColorSequenceKeypoint: t.check<ColorSequenceKeypoint>;
+	ColorSequenceKeypoint: z.check<ColorSequenceKeypoint>;
 	/** checks to see if `value` is a DateTime */
-	DateTime: t.check<DateTime>;
+	DateTime: z.check<DateTime>;
 	/** checks to see if `value` is a DockWidgetPluginGuiInfo */
-	DockWidgetPluginGuiInfo: t.check<DockWidgetPluginGuiInfo>;
+	DockWidgetPluginGuiInfo: z.check<DockWidgetPluginGuiInfo>;
 	/** checks to see if `value` is an Enum */
-	Enum: t.check<Enum>;
+	Enum: z.check<Enum>;
 	/** checks to see if `value` is an EnumItem */
-	EnumItem: t.check<EnumItem>;
+	EnumItem: z.check<EnumItem>;
 	/** checks to see if `value` is an Enums */
-	Enums: t.check<Enums>;
+	Enums: z.check<Enums>;
 	/** checks to see if `value` is a Faces */
-	Faces: t.check<Faces>;
+	Faces: z.check<Faces>;
 	/** checks to see if `value` is a FloatCurveKey */
-	FloatCurveKey: t.check<FloatCurveKey>;
+	FloatCurveKey: z.check<FloatCurveKey>;
 	/** checks to see if `value` is a Font */
-	Font: t.check<Font>;
+	Font: z.check<Font>;
 	/** checks to see if `value` is an Instance */
-	Instance: t.check<Instance>;
+	Instance: z.check<Instance>;
 	/** checks to see if `value` is a NumberRange */
-	NumberRange: t.check<NumberRange>;
+	NumberRange: z.check<NumberRange>;
 	/** checks to see if `value` is a NumberSequence */
-	NumberSequence: t.check<NumberSequence>;
+	NumberSequence: z.check<NumberSequence>;
 	/** checks to see if `value` is a NumberSequenceKeypoint */
-	NumberSequenceKeypoint: t.check<NumberSequenceKeypoint>;
+	NumberSequenceKeypoint: z.check<NumberSequenceKeypoint>;
 	/** checks to see if `value` is a OverlapParams */
-	OverlapParams: t.check<OverlapParams>;
+	OverlapParams: z.check<OverlapParams>;
 	/** checks to see if `value` is a PathWaypoint */
-	PathWaypoint: t.check<PathWaypoint>;
+	PathWaypoint: z.check<PathWaypoint>;
 	/** checks to see if `value` is a PhysicalProperties */
-	PhysicalProperties: t.check<PhysicalProperties>;
+	PhysicalProperties: z.check<PhysicalProperties>;
 	/** checks to see if `value` is a Random */
-	Random: t.check<Random>;
+	Random: z.check<Random>;
 	/** checks to see if `value` is a Ray */
-	Ray: t.check<Ray>;
+	Ray: z.check<Ray>;
 	/** checks to see if `value` is a RaycastParams */
-	RaycastParams: t.check<RaycastParams>;
+	RaycastParams: z.check<RaycastParams>;
 	/** checks to see if `value` is a RaycastResult */
-	RaycastResult: t.check<RaycastResult>;
+	RaycastResult: z.check<RaycastResult>;
 	/** checks to see if `value` is a RBXScriptConnection */
-	RBXScriptConnection: t.check<RBXScriptConnection>;
+	RBXScriptConnection: z.check<RBXScriptConnection>;
 	/** checks to see if `value` is a RBXScriptSignal */
-	RBXScriptSignal: t.check<RBXScriptSignal>;
+	RBXScriptSignal: z.check<RBXScriptSignal>;
 	/** checks to see if `value` is a Rect */
-	Rect: t.check<Rect>;
+	Rect: z.check<Rect>;
 	/** checks to see if `value` is a Region3 */
-	Region3: t.check<Region3>;
+	Region3: z.check<Region3>;
 	/** checks to see if `value` is a Region3int16 */
-	Region3int16: t.check<Region3int16>;
+	Region3int16: z.check<Region3int16>;
 	/** checks to see if `value` is a TweenInfo */
-	TweenInfo: t.check<TweenInfo>;
+	TweenInfo: z.check<TweenInfo>;
 	/** checks to see if `value` is a UDim */
-	UDim: t.check<UDim>;
+	UDim: z.check<UDim>;
 	/** checks to see if `value` is a UDim2 */
-	UDim2: t.check<UDim2>;
+	UDim2: z.check<UDim2>;
 	/** checks to see if `value` is a Vector2 */
-	Vector2: t.check<Vector2>;
+	Vector2: z.check<Vector2>;
 	/** checks to see if `value` is a Vector2int16 */
-	Vector2int16: t.check<Vector2int16>;
+	Vector2int16: z.check<Vector2int16>;
 	/** checks to see if `value` is a Vector3 */
-	Vector3: t.check<Vector3>;
+	Vector3: z.check<Vector3>;
 	/** checks to see if `value` is a Vector3int16 */
-	Vector3int16: t.check<Vector3int16>;
+	Vector3int16: z.check<Vector3int16>;
 
-	/** checks if `value` is an EnumItem which belongs to `Enum`. */
-	enum: <T extends Enum>(Enum: T) => t.check<Extract<T[keyof T], EnumItem>>;
+	/**
+	 * Checks to see if value is equal to any of the literal values provided.
+	 */
+	literal<T>(...literalValues: ReadonlyArray<T>): z.check<T>;
 
-	// type functions
-	/** checks to see if `value == literalValue` */
-	literal<T extends Array<Literal>>(this: void, ...args: T): t.check<ArrayType<T>>;
 	/** returns a t.union of each key in the table as a t.literal */
-	keyOf: <T>(valueTable: T) => t.check<keyof T>;
+	keyOf: <T>(valueTable: T) => z.check<keyof T>;
+
 	/** returns a t.union of each value in the table as a t.literal */
-	valueOf: <T>(valueTable: T) => T extends { [P in keyof T]: infer U } ? t.check<U> : never;
+	valueOf: <T>(
+		valueTable: T,
+	) => T extends { [P in keyof T]: infer U } ? z.check<U> : never;
+
 	/** checks to see if `value` is an integer */
-	integer: t.check<number>;
-	/** checks to see if `value` is a number and is more than or equal to `min` */
-	numberMin: (min: number) => t.check<number>;
-	/** checks to see if `value` is a number and is less than or equal to `max` */
-	numberMax: (max: number) => t.check<number>;
+	integer: z.check<number>;
+
+	/**
+	 * Checks whether value is a number type and not NaN, inf, -inf.
+	 */
+	numberFinite: z.check<number>;
+
 	/** checks to see if `value` is a number and is more than `min` */
-	numberMinExclusive: (min: number) => t.check<number>;
+	numberGt: (min: number) => z.check<number>;
 	/** checks to see if `value` is a number and is less than `max` */
-	numberMaxExclusive: (max: number) => t.check<number>;
+	numberLt: (max: number) => z.check<number>;
+	/** checks to see if `value` is a number and is more than or equal to `min` */
+	numberGte: (min: number) => z.check<number>;
+	/** checks to see if `value` is a number and is less than or equal to `max` */
+	numberLte: (max: number) => z.check<number>;
+
 	/** checks to see if `value` is a number and is more than 0 */
-	numberPositive: t.check<number>;
+	numberPositive: z.check<number>;
 	/** checks to see if `value` is a number and is less than 0 */
-	numberNegative: t.check<number>;
+	numberNegative: z.check<number>;
+
 	/** checks to see if `value` is a number and `min <= value <= max` */
-	numberConstrained: (min: number, max: number) => t.check<number>;
+	numberConstrained: (min: number, max: number) => z.check<number>;
 	/** checks to see if `value` is a number and `min < value < max` */
-	numberConstrainedExclusive: (min: number, max: number) => t.check<number>;
+	numberConstrainedExclusive: (min: number, max: number) => z.check<number>;
+
 	/** checks `t.string` and determines if value matches the pattern via `string.match(value, pattern)` */
-	match: (pattern: string) => t.check<string>;
+	match: (pattern: string) => z.check<string>;
+
 	/** checks to see if `value` is either nil or passes `check` */
-	optional: <T>(check: t.check<T>) => t.check<T | undefined>;
+	optional: <T>(check: z.check<T>) => z.check<T | undefined>;
+
+	/**
+	 * Tuples are not really a part of the TypeScript codestyle,
+	 * therefore it does not make any sense to use the `tuple` and `strictTuple` checks.
+	 */
+
 	/** checks to see if `value` is a table and if its keys match against `check */
-	keys: <T>(check: t.check<T>) => t.check<Map<T, unknown>>;
+	keys: <T>(check: z.check<T>) => z.check<Map<T, unknown>>;
 	/** checks to see if `value` is a table and if its values match against `check` */
-	values: <T>(check: t.check<T>) => t.check<Map<unknown, T>>;
+	values: <T>(check: z.check<T>) => z.check<Map<unknown, T>>;
+
 	/** checks to see if `value` is a table and all of its keys match against `keyCheck` and all of its values match against `valueCheck` */
-	map: <K, V>(keyCheck: t.check<K>, valueCheck: t.check<V>) => t.check<Map<K, V>>;
+	map: <K, V>(
+		keyCheck: z.check<K>,
+		valueCheck: z.check<V>,
+	) => z.check<Map<K, V>>;
+
+	/**
+	 * checks to see if `value` is a table and all of its keys match against `keyCheck` and all of its values match against `valueCheck`.
+	 *
+	 * This function is basically an alias of `map` check except we statically infer checked values.
+	 */
+	record: <K extends string | number, V>(
+		keyCheck: z.check<K>,
+		valueCheck: z.check<V>,
+	) => z.check<Record<K, V>>;
+
 	/** checks to see if `value` is a table and all of its keys match against `valueCheck` and all of its values are `true` */
-	set: <T>(valueCheck: t.check<T>) => t.check<Set<T>>;
+	set: <T>(valueCheck: z.check<T>) => z.check<Set<T>>;
+
 	/** checks to see if `value` is an array and all of its keys are sequential integers and all of its values match `check` */
-	array: <T>(check: t.check<T>) => t.check<Array<T>>;
+	array: <T>(check: z.check<T>) => z.check<Array<T>>;
 	/** ensures value is an array of a strict makeup and size */
-	strictArray: <T extends Array<t.check<any>>>(...args: T) => t.check<{ [K in keyof T]: t.static<T[K]> }>;
+	strictArray: <T extends Array<z.check<any>>>(
+		...args: T
+	) => z.check<{ [K in keyof T]: t.static<T[K]> }>;
+
 	/** checks to see if `value` matches any given check */
-	union: <T extends Array<t.check<any>>>(...args: T) => t.check<t.static<ArrayType<T>>>;
+	union: <T extends Array<z.check<any>>>(
+		...args: T
+	) => z.check<t.static<ArrayType<T>>>;
 	/** checks to see if `value` matches all given checks */
-	intersection: <T extends Array<t.check<any>>>(
+	intersection: <T extends Array<z.check<any>>>(
 		...args: T
 	) => T[Exclude<keyof T, keyof Array<any> | "length">] extends infer U
-		? (U extends any ? (k: U) => void : never) extends (k: t.check<infer I>) => void
-			? t.check<I>
+		? (U extends any ? (k: U) => void : never) extends (
+				k: z.check<infer I>,
+			) => void
+			? z.check<I>
 			: never
 		: never;
 	/** checks to see if `value` matches a given interface definition */
-	interface: <T extends { [index: string]: t.check<any> }>(
+	interface: <T extends { [index: string]: z.check<any> }>(
 		checkTable: T,
-	) => t.check<{ [P in keyof T]: t.static<T[P]> }>;
+	) => z.check<{ [P in keyof T]: t.static<T[P]> }>;
 	/** checks to see if `value` matches a given interface definition with no extra members */
-	strictInterface: <T extends { [index: string]: t.check<any> }>(
+	strictInterface: <T extends { [index: string]: z.check<any> }>(
 		checkTable: T,
-	) => t.check<{ [P in keyof T]: t.static<T[P]> }>;
+	) => z.check<{ [P in keyof T]: t.static<T[P]> }>;
 	/** ensure value is an Instance and it's ClassName matches the given ClassName */
-	instanceOf<S extends keyof Instances>(this: void, className: S): t.check<Instances[S]>;
-	instanceOf<S extends keyof Instances, T extends { [index: string]: t.check<any> }>(
+	instanceOf<S extends keyof Instances>(
+		this: void,
+		className: S,
+	): z.check<Instances[S]>;
+	instanceOf<
+		S extends keyof Instances,
+		T extends { [index: string]: z.check<any> },
+	>(
 		this: void,
 		className: S,
 		checkTable: T,
-	): t.check<Instances[S] & { [P in keyof T]: t.static<T[P]> }>;
+	): z.check<Instances[S] & { [P in keyof T]: t.static<T[P]> }>;
 	/** ensure value is an Instance and it's ClassName matches the given ClassName by an IsA comparison */
-	instanceIsA<S extends keyof Instances>(this: void, className: S): t.check<Instances[S]>;
-	instanceIsA<S extends keyof Instances, T extends { [index: string]: t.check<any> }>(
+	instanceIsA<S extends keyof Instances>(
+		this: void,
+		className: S,
+	): z.check<Instances[S]>;
+	instanceIsA<
+		S extends keyof Instances,
+		T extends { [index: string]: z.check<any> },
+	>(
 		this: void,
 		className: S,
 		checkTable: T,
-	): t.check<Instances[S] & { [P in keyof T]: t.static<T[P]> }>;
+	): z.check<Instances[S] & { [P in keyof T]: t.static<T[P]> }>;
 	/**
 	 * Takes a table where keys are child names and values are functions to check the children against.
 	 * Pass an instance tree into the function.
@@ -198,18 +261,22 @@ interface t {
 	 *
 	 * Warning! If you pass in a tree with more than one child of the same name, this function will always return false
 	 */
-	children: <T extends { [index: string]: t.check<any> }>(
+	children: <T extends { [index: string]: z.check<any> }>(
 		checkTable: T,
-	) => t.check<Instance & { [P in keyof T]: t.static<T[P]> }>;
+	) => z.check<Instance & { [P in keyof T]: t.static<T[P]> }>;
+
+	/** checks if `value` is an EnumItem which belongs to `Enum`. */
+	enum: <T extends Enum>(Enum: T) => z.check<Extract<T[keyof T], EnumItem>>;
 }
 
-declare namespace t {
+declare namespace z {
 	/** creates a static type from a t-defined type */
-	export type static<T> = T extends t.check<infer U> ? U : never;
+	export type static<T> = T extends z.check<infer U> ? U : never;
 
 	/** checks to see if `value` is a T */
 	export type check<T> = (value: unknown) => value is T;
 }
 
-declare const t: t;
-export { t };
+declare const z: z;
+
+export { z };
