@@ -25,11 +25,11 @@ interface z {
 	thread: z.check<thread>;
 	/** checks to see if `value` is a function */
 	callback: z.check<Callback>;
-	/** alias of t.callback */
+	/** alias of z.callback */
 	function: z.check<Callback>;
 	/** checks to see if `value` is undefined */
 	none: z.check<undefined>;
-	/** alias of t.none */
+	/** alias of z.none */
 	nil: z.check<undefined>;
 	/** checks to see if `value` is a string */
 	string: z.check<string>;
@@ -129,10 +129,10 @@ interface z {
 	 */
 	literal<T>(...literalValues: ReadonlyArray<T>): z.check<T>;
 
-	/** returns a t.union of each key in the table as a t.literal */
+	/** returns a z.union of each key in the table as a z.literal */
 	keyOf: <T>(valueTable: T) => z.check<keyof T>;
 
-	/** returns a t.union of each value in the table as a t.literal */
+	/** returns a z.union of each value in the table as a z.literal */
 	valueOf: <T>(
 		valueTable: T,
 	) => T extends { [P in keyof T]: infer U } ? z.check<U> : never;
@@ -164,7 +164,7 @@ interface z {
 	/** checks to see if `value` is a number and `min < value < max` */
 	numberConstrainedExclusive: (min: number, max: number) => z.check<number>;
 
-	/** checks `t.string` and determines if value matches the pattern via `string.match(value, pattern)` */
+	/** checks `z.string` and determines if value matches the pattern via `string.match(value, pattern)` */
 	match: (pattern: string) => z.check<string>;
 
 	/** checks to see if `value` is either nil or passes `check` */
@@ -280,6 +280,10 @@ interface z {
 		callback: C,
 		argCheck: Check,
 	) => C;
+
+	/**
+	 * I did not found a way to type the `strict` function properly
+	 */
 }
 
 declare namespace z {

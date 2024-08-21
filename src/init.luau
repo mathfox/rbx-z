@@ -822,6 +822,8 @@ end
 
 -- asserts a given check
 function z.strict(check)
+	assert(z.callback(check))
+
 	return function(...)
 		assert(check(...))
 	end
