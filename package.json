@@ -1,7 +1,7 @@
 {
 	"name": "@rbxts/z",
 	"version": "0.0.1",
-	"description": "",
+	"description": "A Runtime Typechecker for Roblox",
 	"main": "src/init.lua",
 	"types": "src/index.d.ts",
 	"files": ["src"],
@@ -9,7 +9,7 @@
 		"type": "git",
 		"url": "git+https://github.com/mathfox/rbx-z.git"
 	},
-	"keywords": ["roblox", "roblox-ts", "t"],
+	"keywords": ["roblox", "roblox-ts", "t", "typecheck"],
 	"author": {
 		"name": "Ivan Leontev",
 		"url": "https://github.com/mathfox"
