@@ -527,8 +527,7 @@ function z.array(check)
 			return false, `array expected, got a map-like object`
 		end
 
-		local count = 0
-		local sum = 0
+		local sum, count = 0, 0
 
 		for key in value do
 			local keyType = type(key)
@@ -560,25 +559,57 @@ end
 
 -- ensures value is an array of a strict makeup and size.
 function z.strictArray(...)
-	local valueTypes = { ... }
+	local valuesLength, valueTypes = select("#", ...), { ... }
 	assert(z.array(z.callback)(valueTypes))
 
 	return function(value)
-		local keySuccess, keyErrMsg = arrayKeysCheck(value)
-		if keySuccess == false then
-			return false, string.format("[strictArray] %s", keyErrMsg or "")
+		local valueType = type(value)
+		if valueType ~= "table" then
+			return false, `strictArray expected, got {valueType}`
 		end
 
-		-- If there's more than the set array size, disallow
-		if #valueTypes < #value then
-			return false, string.format("[strictArray] Array size exceeds limit of %d", #valueTypes)
-		end
+		if next(value) == nil then
+			-- an empty table is an empty array
 
-		for idx, typeFn in pairs(valueTypes) do
-			local typeSuccess, typeErrMsg = typeFn(value[idx])
-			if not typeSuccess then
-				return false, string.format("[strictArray] Array index #%d - %s", idx, typeErrMsg)
+			if valuesLength ~= 0 then
+				return false, `strictArray with the size of {valuesLength} elements expected, got an empty array`
 			end
+
+			return true
+		end
+
+		local length = #value
+		if length == 0 then
+			return false, `strictArray expected, got a map-like object`
+		elseif length ~= valuesLength then
+			return false,
+				`strictArray with the size of {valuesLength} elements expected, got a table with {length} length`
+		end
+
+		local sum, count = 0, 0
+
+		for key, v in value do
+			local keyType = type(key)
+			if keyType ~= "number" then
+				return false, `strictArray expected, got a map-like object with key of type - {keyType}`
+			end
+
+			if key % 1 ~= 0 or key < 1 then
+				return false, `strictArray expected, got a map-like object with key - {key}`
+			end
+
+			-- We rely on the `isArray` check down below to catch the non-iterated values (a.k.a mixed arrays).
+			if not valueTypes[key](v) then
+				return false, `Invalid element inside of the strictArray at the #{key} index`
+			end
+
+			count += 1
+			sum += key
+		end
+
+		local isArray = sum == (count * (count + 1) / 2)
+		if not isArray then
+			return false, `strictArray expected, got mixed array`
 		end
 
 		return true
@@ -618,55 +649,51 @@ function z.intersection(...)
 	end
 end
 
-do
-	local checkInterface = z.map(z.any, z.callback)
+-- ensures value matches given interface definition
+function z.interface(checkTable)
+	assert(z.map(z.any, z.callback)(checkTable))
 
-	-- ensures value matches given interface definition
-	function z.interface(checkTable)
-		assert(checkInterface(checkTable))
-
-		return function(value)
-			local valueType = type(value)
-			if valueType ~= "table" then
-				return false, `interface expected, got {valueType}`
-			end
-
-			for key, check in checkTable do
-				local success, errMsg = check(value[key])
-				if success == false then
-					return false, `[interface] bad value for {key}:\n\t{errMsg}`
-				end
-			end
-
-			return true
+	return function(value)
+		local valueType = type(value)
+		if valueType ~= "table" then
+			return false, `interface expected, got {valueType}`
 		end
+
+		for key, check in checkTable do
+			local success, errMsg = check(value[key])
+			if not success then
+				return false, `[interface] bad value for {key}:\n\t{errMsg}`
+			end
+		end
+
+		return true
 	end
+end
 
-	-- ensures value matches given interface definition strictly
-	function z.strictInterface(checkTable)
-		assert(checkInterface(checkTable))
+-- ensures value matches given interface definition strictly
+function z.strictInterface(checkTable)
+	assert(z.map(z.any, z.callback)(checkTable))
 
-		return function(value)
-			local tableSuccess, tableErrMsg = z.table(value)
-			if tableSuccess == false then
-				return false, tableErrMsg
-			end
-
-			for key, check in pairs(checkTable) do
-				local success, errMsg = check(value[key])
-				if success == false then
-					return false, `[strictInterface] bad value for {key}:\n\t{errMsg}`
-				end
-			end
-
-			for key in value do
-				if not checkTable[key] then
-					return false, `[strictInterface] unexpected field {key}`
-				end
-			end
-
-			return true
+	return function(value)
+		local valueType = type(value)
+		if valueType ~= "table" then
+			return false, `strictInterface expected, got {valueType}`
 		end
+
+		for key, check in checkTable do
+			local success, errMsg = check(value[key])
+			if not success then
+				return false, `[strictInterface] bad value for {key}:\n\t{errMsg}`
+			end
+		end
+
+		for key in value do
+			if not checkTable[key] then
+				return false, `[strictInterface] unexpected field {key}`
+			end
+		end
+
+		return true
 	end
 end
 
@@ -683,10 +710,8 @@ function z.instanceOf(className, childTable)
 		local instanceSuccess, instanceErrMsg = z.Instance(value)
 		if not instanceSuccess then
 			return false, instanceErrMsg
-		end
-
-		if value.ClassName ~= className then
-			return false, string.format("%s expected, got %s", className, value.ClassName)
+		elseif value.ClassName ~= className then
+			return false, `{className} expected, got {value.ClassName}`
 		end
 
 		if childrenCheck then
@@ -713,16 +738,54 @@ function z.instanceIsA(className, childTable)
 		local instanceSuccess, instanceErrMsg = z.Instance(value)
 		if not instanceSuccess then
 			return false, instanceErrMsg
-		end
-
-		if not value:IsA(className) then
-			return false, string.format("%s expected, got %s", className, value.ClassName)
+		elseif not value:IsA(className) then
+			return false, `{className} expected, got {value.ClassName}`
 		end
 
 		if childrenCheck then
 			local childrenSuccess, childrenErrMsg = childrenCheck(value)
 			if not childrenSuccess then
 				return false, childrenErrMsg
+			end
+		end
+
+		return true
+	end
+end
+
+--[[
+    Takes a table where keys are child names and values are functions to check the children againsz.
+    Pass an instance tree into the function.
+    If at least one child passes each check, the overall check passes.
+
+    Warning! If you pass in a tree with more than one child of the same name, this function will always return false
+]]
+function z.children(checkTable)
+	assert(z.map(z.string, z.callback)(checkTable))
+
+	return function(value)
+		local instanceSuccess, instanceErrMsg = z.Instance(value)
+		if not instanceSuccess then
+			return false, instanceErrMsg
+		end
+
+		local childrenByName = {}
+
+		for _, child in value:GetChildren() do
+			local name = child.Name
+			if checkTable[name] then
+				if childrenByName[name] then
+					return false, string.format("Cannot process multiple children with the same name %q", name)
+				end
+
+				childrenByName[name] = child
+			end
+		end
+
+		for name, check in checkTable do
+			local success, errMsg = check(childrenByName[name])
+			if not success then
+				return false, `[{value:GetFullName()}.{name}] {errMsg}`
 			end
 		end
 
@@ -738,26 +801,22 @@ function z.enum(enum)
 		local enumItemSuccess, enumItemErrMsg = z.EnumItem(value)
 		if not enumItemSuccess then
 			return false, enumItemErrMsg
+		elseif value.EnumType ~= enum then
+			return false, `enum of {enum} expected, got enum of {value.EnumType}`
 		end
 
-		if value.EnumType == enum then
-			return true
-		else
-			return false, string.format("enum of %s expected, got enum of %s", tostring(enum), tostring(value.EnumType))
-		end
+		return true
 	end
 end
 
-do
-	local checkWrap = z.tuple(z.callback, z.callback)
+-- wraps a callback in an assert with checkArgs
+function z.wrap(callback, checkArgs)
+	assert(z.tuple(z.callback, z.callback)(callback, checkArgs))
 
-	-- wraps a callback in an assert with checkArgs
-	function z.wrap(callback, checkArgs)
-		assert(checkWrap(callback, checkArgs))
-		return function(...)
-			assert(checkArgs(...))
-			return callback(...)
-		end
+	return function(...)
+		assert(checkArgs(...))
+
+		return callback(...)
 	end
 end
 
@@ -765,49 +824,6 @@ end
 function z.strict(check)
 	return function(...)
 		assert(check(...))
-	end
-end
-
-do
-	local checkChildren = z.map(z.string, z.callback)
-
-	--[[
-		Takes a table where keys are child names and values are functions to check the children againsz.
-		Pass an instance tree into the function.
-		If at least one child passes each check, the overall check passes.
-
-		Warning! If you pass in a tree with more than one child of the same name, this function will always return false
-	]]
-	function z.children(checkTable)
-		assert(checkChildren(checkTable))
-
-		return function(value)
-			local instanceSuccess, instanceErrMsg = z.Instance(value)
-			if not instanceSuccess then
-				return false, instanceErrMsg
-			end
-
-			local childrenByName = {}
-			for _, child in value:GetChildren() do
-				local name = child.Name
-				if checkTable[name] then
-					if childrenByName[name] then
-						return false, string.format("Cannot process multiple children with the same name %q", name)
-					end
-
-					childrenByName[name] = child
-				end
-			end
-
-			for name, check in checkTable do
-				local success, errMsg = check(childrenByName[name])
-				if not success then
-					return false, string.format("[%s.%s] %s", value:GetFullName(), name, errMsg or "")
-				end
-			end
-
-			return true
-		end
 	end
 end
 

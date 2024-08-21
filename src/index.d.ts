@@ -168,7 +168,7 @@ interface z {
 	match: (pattern: string) => z.check<string>;
 
 	/** checks to see if `value` is either nil or passes `check` */
-	optional: <T>(check: z.check<T>) => z.check<T | undefined>;
+	optional: <T>(check: z.check<T>) => z.check<T | undefined | void>;
 
 	/**
 	 * Tuples are not really a part of the TypeScript codestyle,
@@ -202,16 +202,17 @@ interface z {
 	/** checks to see if `value` is an array and all of its keys are sequential integers and all of its values match `check` */
 	array: <T>(check: z.check<T>) => z.check<Array<T>>;
 	/** ensures value is an array of a strict makeup and size */
-	strictArray: <T extends Array<z.check<any>>>(
+	strictArray: <T extends ReadonlyArray<z.check<any>>>(
 		...args: T
-	) => z.check<{ [K in keyof T]: t.static<T[K]> }>;
+	) => z.check<{ [K in keyof T]: z.static<T[K]> }>;
 
 	/** checks to see if `value` matches any given check */
-	union: <T extends Array<z.check<any>>>(
+	union: <T extends ReadonlyArray<z.check<any>>>(
 		...args: T
-	) => z.check<t.static<ArrayType<T>>>;
+	) => z.check<z.static<ArrayType<T>>>;
+
 	/** checks to see if `value` matches all given checks */
-	intersection: <T extends Array<z.check<any>>>(
+	intersection: <T extends ReadonlyArray<z.check<any>>>(
 		...args: T
 	) => T[Exclude<keyof T, keyof Array<any> | "length">] extends infer U
 		? (U extends any ? (k: U) => void : never) extends (
@@ -220,14 +221,16 @@ interface z {
 			? z.check<I>
 			: never
 		: never;
+
 	/** checks to see if `value` matches a given interface definition */
 	interface: <T extends { [index: string]: z.check<any> }>(
 		checkTable: T,
-	) => z.check<{ [P in keyof T]: t.static<T[P]> }>;
+	) => z.check<{ [P in keyof T]: z.static<T[P]> }>;
 	/** checks to see if `value` matches a given interface definition with no extra members */
 	strictInterface: <T extends { [index: string]: z.check<any> }>(
 		checkTable: T,
-	) => z.check<{ [P in keyof T]: t.static<T[P]> }>;
+	) => z.check<{ [P in keyof T]: z.static<T[P]> }>;
+
 	/** ensure value is an Instance and it's ClassName matches the given ClassName */
 	instanceOf<S extends keyof Instances>(
 		this: void,
@@ -240,7 +243,8 @@ interface z {
 		this: void,
 		className: S,
 		checkTable: T,
-	): z.check<Instances[S] & { [P in keyof T]: t.static<T[P]> }>;
+	): z.check<Instances[S] & { [P in keyof T]: z.static<T[P]> }>;
+
 	/** ensure value is an Instance and it's ClassName matches the given ClassName by an IsA comparison */
 	instanceIsA<S extends keyof Instances>(
 		this: void,
@@ -253,7 +257,8 @@ interface z {
 		this: void,
 		className: S,
 		checkTable: T,
-	): z.check<Instances[S] & { [P in keyof T]: t.static<T[P]> }>;
+	): z.check<Instances[S] & { [P in keyof T]: z.static<T[P]> }>;
+
 	/**
 	 * Takes a table where keys are child names and values are functions to check the children against.
 	 * Pass an instance tree into the function.
@@ -263,10 +268,18 @@ interface z {
 	 */
 	children: <T extends { [index: string]: z.check<any> }>(
 		checkTable: T,
-	) => z.check<Instance & { [P in keyof T]: t.static<T[P]> }>;
+	) => z.check<Instance & { [P in keyof T]: z.static<T[P]> }>;
 
 	/** checks if `value` is an EnumItem which belongs to `Enum`. */
 	enum: <T extends Enum>(Enum: T) => z.check<Extract<T[keyof T], EnumItem>>;
+
+	wrap: <
+		Check extends z.check<any>,
+		C extends (...args: z.static<Check>) => any,
+	>(
+		callback: C,
+		argCheck: Check,
+	) => C;
 }
 
 declare namespace z {
